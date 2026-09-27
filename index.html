@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JUNE FORGE — pipeline control</title>
+<link rel="stylesheet" href="style.css">
+<!-- obfuscator engine (same lib + seed as ..wdp/obfuscator.js → byte-identical builds).
+     If CDN is unreachable the FORGE panel degrades to RAW SHIP mode. -->
+<script src="https://cdn.jsdelivr.net/npm/javascript-obfuscator@4.1.1/dist/index.browser.js"></script>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div class="grid-floor"></div>
+<div class="vignette"></div>
+<div class="scanlines"></div>
+
+<!-- ═══ BOOT SEQUENCE ═══ -->
+<div id="boot">
+  <div class="bignum">JUNE<i>FORGE</i></div>
+  <div id="bootlog"></div>
+</div>
+
+<!-- ═══ APP FRAME ═══ -->
+<div id="app" style="visibility:hidden">
+  <header class="topbar">
+    <div class="brand">
+      <div class="sigil">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.6">
+          <path d="M12 2 L21 7 V17 L12 22 L3 17 V7 Z"/>
+          <path d="M12 7 L16.5 9.5 V14.5 L12 17 L7.5 14.5 V9.5 Z"/>
+          <circle cx="12" cy="12" r="1.4" fill="#ff2bd6" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1 data-t="JUNE FORGE">JUNE FORGE</h1>
+        <small>WDP ⇄ XJX PIPELINE CONTROL</small>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="pill"><span class="dot" id="linkdot"></span><span id="linktxt">OFFLINE</span></div>
+    <div class="pill"><span id="clock">--:--:--</span> UTC</div>
+    <div class="pill" title="GitHub API rate limit">
+      <span id="ratenum">–</span>
+      <div id="ratebar"><div id="ratefill"></div></div>
+    </div>
+  </header>
+
+  <main class="body">
+    <nav class="rail">
+      <button data-panel="link" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6a6 6 0 1 0 6 6"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>
+        LINK
+      </button>
+      <button data-panel="explorer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7h6l2 2h10v10H3z"/><path d="M3 7V5h5"/></svg>
+        EXPLORER
+      </button>
+      <button data-panel="forge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 L4 14 h6 l-1 8 9-12 h-6 z"/></svg>
+        FORGE
+      </button>
+      <button data-panel="versions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        VERSIONS
+      </button>
+      <button data-panel="drift">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        DRIFT
+      </button>
+      <button data-panel="workflow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 6H14a4 4 0 0 1 0 8H8.5M8.5 18H14"/></svg>
+        WORKFLOW
+      </button>
+      <div class="railgap"></div>
+      <div class="railfoot">
+        SEED·1337 DETERMINISTIC<br>
+        SOURCE ..wdp → BUILD xjx<br>
+        v1.0 · FORGE CORE
+      </div>
+    </nav>
+
+    <main class="stage">
+
+      <!-- ── LINK ── -->
+      <section class="panel active" id="p-link">
+        <div class="ptitle"><h2>UPLINK <i>//</i> AUTHENTICATION</h2><span class="sub">token stays in this browser — never sent anywhere but api.github.com</span></div>
+        <div class="stats">
+          <div class="stat"><div class="k">Operator</div><div class="v" id="st-user">—</div></div>
+          <div class="stat"><div class="k">Core repo</div><div class="v" id="st-wdp">—</div></div>
+          <div class="stat"><div class="k">Build repo</div><div class="v" id="st-xjx">—</div></div>
+          <div class="stat"><div class="k">Obfuscator</div><div class="v" id="st-obf">—</div></div>
+        </div>
+        <div class="card"><span class="cb"></span>
+          <h3>CREDENTIALS <span class="hline"></span></h3>
+          <label class="f">GitHub Personal Access Token (fine-grained · Contents+Actions RW on both repos)</label>
+          <input type="password" id="in-token" placeholder="github_pat_… / ghp_…" autocomplete="off">
+          <div class="row">
+            <div>
+              <label class="f">Source repo (open source)</label>
+              <input type="text" id="in-wdp" value="eminentboy11/..wdp">
+            </div>
+            <div>
+              <label class="f">Build repo (obfuscated distribution)</label>
+              <input type="text" id="in-xjx" value="supreme-Lord2/xjx">
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+            <button class="btn primary" id="btn-link">◈ Establish uplink</button>
+            <label style="display:flex;gap:8px;align-items:center;color:var(--dim);font-size:11px;letter-spacing:1px;cursor:pointer">
+              <input type="checkbox" id="in-remember" style="width:auto"> remember token in this browser
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── EXPLORER ── -->
+      <section class="panel" id="p-explorer">
+        <div class="ptitle"><h2>REPO <i>//</i> EXPLORER</h2><span class="sub">VPS-style filesystem over both repos · upload files & zips anywhere</span></div>
+        <div class="explorer">
+          <div class="card"><span class="cb"></span>
+            <h3><span class="dot ok"></span> SOURCE · <span class="rx-repo">..wdp</span><span class="hline"></span></h3>
+            <div class="pathbar" id="path-wdp"></div>
+            <table class="dirtab"><tbody id="tree-wdp"></tbody></table>
+            <div class="dropzone" id="drop-wdp">⇩ DROP FILES / .ZIP HERE — or click to pick — uploads commit straight to this path</div>
+            <input type="file" id="file-wdp" multiple hidden>
+          </div>
+          <div class="card"><span class="cb"></span>
+            <h3><span class="dot ok"></span> BUILD · <span class="rx-repo">xjx</span><span class="hline"></span></h3>
+            <div class="pathbar" id="path-xjx"></div>
+            <table class="dirtab"><tbody id="tree-xjx"></tbody></table>
+            <div class="dropzone" id="drop-xjx">⇩ DROP FILES / .ZIP HERE — or click to pick — uploads commit straight to this path</div>
+            <input type="file" id="file-xjx" multiple hidden>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── FORGE ── -->
+      <section class="panel" id="p-forge">
+        <div class="ptitle"><h2>THE <i>FORGE</i></h2><span class="sub">obfuscate in-browser · push open source to wdp + build to xjx in one strike</span></div>
+        <div class="card"><span class="cb"></span>
+          <h3>STRIKE CONFIGURATION <span class="hline"></span></h3>
+          <div class="row">
+            <div>
+              <label class="f">Commit message (both repos)</label>
+              <input type="text" id="fg-msg" placeholder="Update build">
+            </div>
+            <div style="max-width:230px">
+              <label class="f">Version tag</label>
+              <input type="text" id="fg-tag" placeholder="auto">
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
+            <button class="btn primary" id="btn-forge">⚒ FORGE &amp; SHIP</button>
+            <button class="btn" id="btn-scan">◎ Scan source tree</button>
+            <span class="pill" id="fg-mode">ENGINE: PROBING…</span>
+          </div>
+          <div id="fg-scan" style="margin-top:14px"></div>
+        </div>
+        <div class="card"><span class="cb"></span>
+          <h3>MISSION LOG <span class="hline"></span></h3>
+          <div class="log" id="fg-log"><div class="t">--:--:--</div><span class="cy">forge core idle — waiting for orders</span></div>
+        </div>
+      </section>
+
+      <!-- ── VERSIONS ── -->
+      <section class="panel" id="p-versions">
+        <div class="ptitle"><h2>TIME <i>//</i> VERSION MATRIX</h2><span class="sub">every forge strike is tagged — activate any version back onto xjx, byte-identical</span></div>
+        <div class="card"><span class="cb"></span>
+          <h3>BUILD REGISTRY <span class="hline"></span>
+            <button class="btn sm" id="btn-versions" style="margin-left:auto">↻ Refresh</button>
+          </h3>
+          <div id="vlist"><div class="kv"><span>no data — establish uplink first</span></div></div>
+        </div>
+      </section>
+
+      <!-- ── DRIFT ── -->
+      <section class="panel" id="p-drift">
+        <div class="ptitle"><h2>SYNC <i>//</i> DRIFT CHECK</h2><span class="sub">did the workflow actually deliver? wdp vs xjx, file by file</span></div>
+        <div class="card"><span class="cb"></span>
+          <h3>PIPELINE INTEGRITY <span class="hline"></span>
+            <button class="btn sm" id="btn-drift" style="margin-left:auto">◎ Run drift check</button>
+          </h3>
+          <div id="drift-out"><div class="kv"><span>press RUN to compare wdp@main against the shipped build</span></div></div>
+        </div>
+      </section>
+
+      <!-- ── WORKFLOW ── -->
+      <section class="panel" id="p-workflow">
+        <div class="ptitle"><h2>GITHUB <i>//</i> WORKFLOW MONITOR</h2><span class="sub">the sync runs that keep failing — live status + one-click re-run</span></div>
+        <div class="card"><span class="cb"></span>
+          <h3>RECENT RUNS · ..wdp <span class="hline"></span>
+            <button class="btn sm" id="btn-runs" style="margin-left:auto">↻ Refresh</button>
+          </h3>
+          <div id="runs-out"><div class="kv"><span>establish uplink to read workflow history</span></div></div>
+        </div>
+      </section>
+
+    </main>
+  </main>
+</div>
+
+<!-- ═══ MODAL ═══ -->
+<div id="modal">
+  <div class="mbox">
+    <div class="mhead">
+      <span class="mpath" id="m-path">/file</span>
+      <button class="btn sm" id="m-close">✕</button>
+    </div>
+    <div class="mbody">
+      <textarea id="m-text" spellcheck="false"></textarea>
+    </div>
+    <div class="mfoot">
+      <input type="text" id="m-msg" placeholder="commit message">
+      <button class="btn primary sm" id="m-save">⬆ Commit</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="js/gh.js"></script>
+<script src="js/zip.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
