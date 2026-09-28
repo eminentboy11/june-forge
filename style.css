@@ -464,3 +464,50 @@ textarea { resize: vertical; min-height: 90px; }
   .topbar .pill.linkpill { padding: 4px 7px; }
   nav.rail button { font-size: 7.2px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE POLISH v2 — topbar overflow fix · gutters · natural scroll
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 860px) {
+
+  /* 1. topbar: one line, never wraps, never clips */
+  #app { grid-template-rows: auto 1fr; height: auto; min-height: 100vh; }
+  header.topbar {
+    position: sticky; top: 0; z-index: 65;
+    flex-wrap: nowrap; white-space: nowrap; overflow: hidden;
+    padding: 8px 10px; gap: 8px; min-height: 0;
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+  .brand small { display: none; }
+  .brand h1 { font-size: 11px; letter-spacing: 2.5px; }
+  .topbar .pill { flex-shrink: 0; }
+  .topbar .pill.clockpill { display: none !important; }
+  .topbar .pill.linkpill { min-width: 0; }
+  .topbar .pill.linkpill #linktxt {
+    display: inline-block; max-width: 30vw;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
+  }
+  .topbar .pill.ratepill #ratenum { font-size: 9px; }
+
+  /* 2. breathing room: no edge-hugging, no sideways overflow */
+  main.stage { padding: 16px 14px calc(96px + env(safe-area-inset-bottom)); overflow: visible; }
+  .card { min-width: 0; }
+  .explorer { gap: 14px; }
+  .explorer > .card { min-width: 0; max-width: 100%; }
+  .pathbar { overflow-wrap: anywhere; }
+  .dropzone { overflow-wrap: anywhere; white-space: normal; }
+  .dirtab .nm { word-break: break-word; }
+  .ptitle .sub, .card h3 { overflow-wrap: anywhere; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* 4. natural scroll: the DOCUMENT scrolls = real iOS rubber-band */
+  html, body { overflow-x: hidden; overflow-y: auto; height: auto; }
+  body { -webkit-text-size-adjust: 100%; }
+  main.stage { touch-action: pan-y; }
+  .log { overscroll-behavior: contain; }
+  #modal .mbody { overscroll-behavior: contain; }
+}
+@media (max-width: 400px) {
+  #ratebar { display: none; }
+  .topbar .pill { padding: 4px 7px; }
+}
