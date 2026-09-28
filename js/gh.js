@@ -34,17 +34,22 @@
       if (opts.body && !opts.raw) h['Content-Type'] = 'application/json';
       const body = opts.body && !opts.raw ? JSON.stringify(opts.body) : (opts.body || undefined);
 
-      /* up to 4 attempts: network blips, 5xx and rate-limit bumps all retry */
+      /* up to 4 attempts: network blips, STALLED requests, 5xx and rate limits all retry */
+      const timeoutMs = opts.timeout || 60000;
       for (let attempt = 1; attempt <= 4; attempt++) {
+        const ctrl = new AbortController();
+        const kill = setTimeout(() => ctrl.abort(), timeoutMs);
         let res;
         try {
-          res = await fetch(API + path, { method: opts.method || 'GET', headers: h, body });
+          res = await fetch(API + path, { method: opts.method || 'GET', headers: h, body, signal: ctrl.signal });
+          clearTimeout(kill);
         } catch (netErr) {
+          clearTimeout(kill);
           if (attempt < 4) {
             await new Promise((r) => setTimeout(r, 900 * 2.2 ** (attempt - 1) + Math.random() * 400));
             continue;
           }
-          const e = new Error('network dropped 4× — check connection');
+          const e = new Error('network dropped/stalled 4× — check connection');
           e.cause = netErr; throw e;
         }
         const lim = res.headers.get('x-ratelimit-remaining');

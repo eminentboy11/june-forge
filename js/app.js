@@ -61,8 +61,18 @@ function mlog(msg, kind = '') {
   const d = document.createElement('div');
   d.innerHTML = `<span class="t">[${now2()}]</span><span class="${kind}">${esc(msg)}</span>`;
   box.appendChild(d);
+  while (box.children.length > 250) box.removeChild(box.firstChild);
   box.scrollTop = box.scrollHeight;
+  try { localStorage.setItem('forge.log', JSON.stringify([...box.children].slice(-200).map((x) => x.innerHTML))); } catch {}
 }
+(function restoreLog() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('forge.log') || '[]');
+    const box = $('fg-log');
+    arr.forEach((h) => { const d = document.createElement('div'); d.innerHTML = h; box.appendChild(d); });
+    box.scrollTop = box.scrollHeight;
+  } catch {}
+})();
 
 async function gitBlobSha(bytes) {
   const prefix = new TextEncoder().encode('blob ' + bytes.length + '\0');
@@ -514,7 +524,19 @@ async function loadVersions() {
   try {
     if (!S.trees.xjx) await refreshTree('xjx');
     const reg = await readRegistry();
-    if (!reg.builds || !reg.builds.length) { box.innerHTML = '<div class="kv"><span>registry empty — run a FORGE strike first</span></div>'; return; }
+    const regIds = new Set((reg.builds || []).map((b) => b.id));
+
+    /* tags are the real source of truth — registry can lag if a strike stalls */
+    const orphans = [];
+    try {
+      const tags = await S.gh.listTags(S.wdp.owner, S.wdp.repo);
+      for (const t of tags) {
+        const m = (t.name || '').match(/^forge\/(\d{14}-[a-z0-9]{3,5})$/);
+        if (m && !regIds.has(m[1])) orphans.push(m[1]);
+      }
+    } catch {}
+
+    if ((!reg.builds || !reg.builds.length) && !orphans.length) { box.innerHTML = '<div class="kv"><span>no builds yet — run a FORGE strike first</span></div>'; return; }
     box.innerHTML = reg.builds.map((b) => `
       <div class="vcard ${reg.live === b.id ? 'live' : ''}">
         <div class="vtag">${esc(b.id)}</div>
@@ -525,6 +547,13 @@ async function loadVersions() {
         <div>
           ${reg.live === b.id ? '<span class="livechip">◉ LIVE</span>' : `<button class="btn sm" data-act="${esc(b.id)}">⟲ ACTIVATE</button>`}
         </div>
+      </div>`).join('')
+      + orphans.map((id) => `
+      <div class="vcard">
+        <div class="vtag">${esc(id)}</div>
+        <div class="vmeta"><span style="color:var(--amber)">◈ orphan strike — registry never landed</span><br>
+        fully recoverable: replay from tag <b>forge/${esc(id)}</b> on wdp</div>
+        <div><button class="btn sm" data-act="${esc(id)}">⟲ RECOVER</button></div>
       </div>`).join('');
     box.querySelectorAll('[data-act]').forEach((btn) => btn.addEventListener('click', () => activate(btn.dataset.act)));
   } catch (e) { box.innerHTML = `<div class="kv"><span style="color:var(--red)">${esc(e.message)}</span></div>`; }
@@ -539,8 +568,12 @@ async function activate(id) {
   try {
     mlog(`⟲ ACTIVATE ${id} — deterministic replay`, 'mg');
     const reg = await readRegistry();
-    const b = reg.builds.find((x) => x.id === id);
-    if (!b) throw new Error('build not in registry');
+    let b = reg.builds.find((x) => x.id === id);
+    if (!b) {
+      /* registry never landed (stall/closed page) — recover straight from the tag */
+      b = { id, tag: 'forge/' + id, msg: `recovered from tag forge/${id}`,
+            time: new Date().toISOString(), operator: 'tag-recovery', replay: 0 };
+    }
 
     /* tree at tag */
     const tagRef = await S.gh.api(`/repos/${S.wdp.owner}/${S.wdp.repo}/git/ref/tags/${encodeURIComponent(b.tag)}`);
@@ -580,7 +613,8 @@ async function activate(id) {
     }
 
     reg.live = id;
-    const entry = reg.builds.find((x) => x.id === id);
+    let entry = reg.builds.find((x) => x.id === id);
+    if (!entry) { entry = b; reg.builds.unshift(entry); }
     entry.xjxSha = xjxSha; entry.replay = (entry.replay || 0) + 1;
     await S.gh.commitFiles(S.xjx.owner, S.xjx.repo, 'main',
       new Map([[REGISTRY_PATH, ForgeGH.enc(JSON.stringify(reg, null, 2))]]),
