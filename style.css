@@ -352,3 +352,115 @@ textarea { resize: vertical; min-height: 90px; }
 ::-webkit-scrollbar-thumb { background: rgba(0,229,255,.18); border-radius: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::selection { background: rgba(255,43,214,.35); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE — phones get the full HUD too
+   rail → bottom tab bar · full-width panels · thumb-sized targets
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 860px) {
+  html, body { font-size: 13px; }
+  #app { grid-template-rows: 52px 1fr; }
+
+  /* topbar — compact */
+  header.topbar { padding: 0 12px; gap: 8px; }
+  .brand { gap: 9px; }
+  .brand .sigil { width: 28px; height: 28px; }
+  .brand .sigil svg { width: 16px; height: 16px; }
+  .brand h1 { font-size: 12px; letter-spacing: 3px; }
+  .brand small { font-size: 7.5px; letter-spacing: 1.2px; }
+  .topbar .pill { padding: 4px 9px; font-size: 9.5px; letter-spacing: 1px; gap: 5px; }
+  .topbar .pill.clockpill { display: none; }
+  #ratebar { width: 54px; }
+  .topbar .spacer { min-width: 0; }
+
+  /* rail → bottom tab bar */
+  main.body { display: block; }
+  nav.rail {
+    position: fixed; z-index: 70; left: 0; right: 0; bottom: 0; top: auto;
+    flex-direction: row; justify-content: space-around; align-items: stretch;
+    height: calc(60px + env(safe-area-inset-bottom));
+    padding: 5px 2px calc(5px + env(safe-area-inset-bottom));
+    border-right: none; border-top: 1px solid var(--line);
+    background: rgba(4, 8, 18, 0.97);
+    backdrop-filter: blur(16px);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  nav.rail::-webkit-scrollbar { display: none; }
+  nav.rail button {
+    flex: 1; min-width: 56px; flex-direction: column; justify-content: center; align-items: center;
+    gap: 4px; margin: 0; padding: 6px 4px; font-size: 8px; letter-spacing: 1.4px;
+  }
+  nav.rail button svg { width: 20px; height: 20px; }
+  nav.rail button.active::before { display: none; }
+  nav.rail button.active {
+    background: none; border-color: transparent;
+  }
+  nav.rail button.active svg {
+    filter: drop-shadow(0 0 7px var(--cyan));
+    transform: translateY(-1px);
+  }
+  nav.rail .railgap, .railfoot { display: none; }
+
+  /* stage — full width, thumb room */
+  main.stage {
+    padding: 14px 12px calc(84px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+  }
+  .ptitle { flex-direction: column; align-items: flex-start; gap: 5px; margin-bottom: 12px; }
+  .ptitle h2 { font-size: 12px; letter-spacing: 3px; }
+  .ptitle .sub { font-size: 9.5px; letter-spacing: 1px; line-height: 1.6; }
+
+  .card { padding: 14px; border-radius: 12px; margin-bottom: 14px; }
+  .card h3 { font-size: 10px; letter-spacing: 2px; margin-bottom: 12px; }
+
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat { padding: 12px; }
+  .stat .v { font-size: 15px; letter-spacing: .5px; }
+
+  /* iOS: 16px inputs kill the focus-zoom */
+  input[type=text], input[type=password], select, textarea { font-size: 16px; padding: 11px 12px; }
+  label.f { font-size: 9.5px; letter-spacing: 1.5px; margin: 10px 0 5px; }
+
+  .btn { padding: 13px 16px; font-size: 11px; letter-spacing: 2px; justify-content: center; }
+  .row { flex-direction: column; gap: 0; }
+  .row > * + * { margin-top: 10px; }
+
+  /* explorer stacked */
+  .explorer { grid-template-columns: 1fr; gap: 14px; }
+  .pathbar { font-size: 11px; padding: 8px 10px; }
+  .dirtab td { padding: 10px 8px; }
+  .dirtab .sz { width: 62px; font-size: 10px; }
+  .dropzone { padding: 18px 12px; font-size: 10px; }
+
+  .log { height: 220px; font-size: 11px; }
+
+  .vcard { grid-template-columns: 1fr; gap: 10px; }
+  .vcard .vmeta br { display: none; }
+  .vcard > div:last-child { display: flex; }
+  .vcard > div:last-child .btn { flex: 1; }
+
+  .run { grid-template-columns: 12px 1fr auto; gap: 10px; }
+  .run .rtime { display: none; }
+
+  /* modal near-fullscreen */
+  #modal .mbox { width: 100vw; height: 94vh; max-height: 94vh; border-radius: 0; }
+  .mhead { padding: 12px 14px; }
+  .mbody { padding: 12px 14px; }
+  .mbody textarea { min-height: 50vh; font-size: 14px; }
+  .mfoot { flex-direction: column; padding: 12px 14px; }
+
+  /* toasts above tab bar */
+  #toasts { top: auto; bottom: calc(74px + env(safe-area-inset-bottom)); left: 10px; right: 10px; }
+  .toast { max-width: none; }
+
+  /* boot */
+  #boot .bignum { font-size: 20px; letter-spacing: 8px; }
+  #bootlog { font-size: 10.5px; height: 190px; width: 90vw; }
+}
+
+/* very narrow phones */
+@media (max-width: 380px) {
+  .brand small { display: none; }
+  .topbar .pill.linkpill { padding: 4px 7px; }
+  nav.rail button { font-size: 7.2px; }
+}

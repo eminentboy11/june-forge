@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#030510">
 <title>JUNE FORGE — pipeline control</title>
 <link rel="stylesheet" href="style.css">
 <!-- obfuscator engine (same lib + seed as ..wdp/obfuscator.js → byte-identical builds).
@@ -39,9 +40,9 @@
       </div>
     </div>
     <div class="spacer"></div>
-    <div class="pill"><span class="dot" id="linkdot"></span><span id="linktxt">OFFLINE</span></div>
+    <div class="pill linkpill"><span class="dot" id="linkdot"></span><span id="linktxt">OFFLINE</span></div>
     <div class="pill"><span id="clock">--:--:--</span> UTC</div>
-    <div class="pill" title="GitHub API rate limit">
+    <div class="pill ratepill" title="GitHub API rate limit">
       <span id="ratenum">–</span>
       <div id="ratebar"><div id="ratefill"></div></div>
     </div>
