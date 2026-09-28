@@ -402,18 +402,20 @@ $('btn-forge').addEventListener('click', async () => {
   const tag = 'forge/' + id;
   try {
     mlog(`⚒ FORGE STRIKE ${id} initiated`, 'mg');
+    const t0 = Date.now();
+    const el = () => `[+${Math.round((Date.now() - t0) / 1000)}s]`;
     if (!S.trees.wdp) await refreshTree('wdp');
     if (!S.trees.xjx) await refreshTree('xjx');
     const jobs = S.scan || sourceFilter(S.trees.wdp);
 
-    /* 1 — pull all source blobs */
-    mlog(`pulling ${jobs.length} source files …`, 'cy');
+    /* 1 — pull all source blobs (10-wide, auto-retry) */
+    mlog(`PHASE 1 · acquiring ${jobs.length} source files ${el()}`, 'cy');
     const blobs = new Map();
     let done = 0;
-    await pool(jobs, 6, async (j) => {
+    await pool(jobs, 10, async (j) => {
       const buf = new Uint8Array(await S.gh.blob(S.wdp.owner, S.wdp.repo, j.sha));
       blobs.set(j.path, buf);
-      if (++done % 40 === 0) mlog(`  pulled ${done}/${jobs.length}`);
+      if (++done % 50 === 0) mlog(`  pulled ${done}/${jobs.length} ${el()}`);
     });
     mlog(`source acquired — ${fmtB([...blobs.values()].reduce((a, b) => a + b.length, 0))}`, 'ok');
 
@@ -425,7 +427,7 @@ $('btn-forge').addEventListener('click', async () => {
     }
     let wdpSha = await S.gh.branchHead(S.wdp.owner, S.wdp.repo, 'main');
     if (changedSrc.size) {
-      mlog(`committing ${changedSrc.size} changed source file(s) → ${S.wdp.repo}@main …`, 'cy');
+      mlog(`PHASE 2 · open source → ${S.wdp.repo} (${changedSrc.size} changed) ${el()}`, 'cy');
       wdpSha = await S.gh.commitFiles(S.wdp.owner, S.wdp.repo, 'main', changedSrc, msg, (l) => mlog('  ' + l));
     } else mlog('source identical — no wdp commit needed', 'wn');
 
@@ -436,7 +438,7 @@ $('btn-forge').addEventListener('click', async () => {
     /* 4 — forge the build */
     const build = new Map();
     let obfDone = 0;
-    mlog('forging … obfuscating with seed 1337', 'mg');
+    mlog(`PHASE 3 · forging with seed 1337 ${el()}`, 'mg');
     for (const j of jobs) {
       if (j.js) {
         const src = ForgeGH.dec(blobs.get(j.path));
@@ -463,7 +465,7 @@ $('btn-forge').addEventListener('click', async () => {
     }
     let xjxSha;
     if (changedBuild.size) {
-      mlog(`pushing ${changedBuild.size} changed build file(s) → ${S.xjx.repo}@main …`, 'cy');
+      mlog(`PHASE 4 · build → ${S.xjx.repo} (${changedBuild.size} changed) ${el()}`, 'cy');
       xjxSha = await S.gh.commitFiles(S.xjx.owner, S.xjx.repo, 'main', changedBuild, msg, (l) => mlog('  ' + l));
     } else {
       xjxSha = await S.gh.branchHead(S.xjx.owner, S.xjx.repo, 'main');
@@ -549,7 +551,7 @@ async function activate(id) {
     const jobs = sourceFilter(map);
 
     const blobs = new Map();
-    await pool(jobs, 6, async (j) => blobs.set(j.path, new Uint8Array(await S.gh.blob(S.wdp.owner, S.wdp.repo, j.sha))));
+    await pool(jobs, 10, async (j) => blobs.set(j.path, new Uint8Array(await S.gh.blob(S.wdp.owner, S.wdp.repo, j.sha))));
 
     const build = new Map();
     for (const j of jobs) {
